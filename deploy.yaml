@@ -1,0 +1,66 @@
+- name: Prepare Hosts for K3s
+  hosts: all
+  become: true
+  tasks:
+    - name: Push Install Script
+      copy:
+        src: scripts/deploy.sh
+        dest: /home/users/{{ ansible_user }}/
+        mode: a+x
+    - name: Ensures /etc/rancher/k3s dir exists
+      file: 
+        path: /etc/rancher/k3s 
+        state: directory
+    - name: Push Docker Credentials
+      copy:
+        src: k3s/registries.yaml
+        dest: /etc/rancher/k3s/registries.yaml
+        
+- name: Deploy Init-Server
+  hosts: initserver
+  become: true 
+  tasks:
+    - name: Run Install Script
+      command: /home/users/"{{ ansible_user }}"/deploy.sh "initserver" "{{ ansible_user }}" "{{ k3s_version }}"
+    - name: Read Node-Token
+      ansible.builtin.fetch:
+        src: /home/users/{{ ansible_user }}/data/server/node-token
+        dest: k3s/node-token.txt
+        flat: yes
+    - name: Grab Cluster.Yaml from First Control Plane
+      ansible.builtin.fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: k3s/kubeconfig.yaml
+        flat: yes
+        
+- name: Deploy Server 2
+  hosts: server2
+  become: true 
+  tasks:
+    - name: Run Install Script On Control Plane 2
+      command: /home/users/"{{ ansible_user }}"/deploy.sh "server" "{{ ansible_user }}" "{{ k3s_version }}" "{{control_plane_addr}}" "{{ lookup('file', 'k3s/node-token.txt') }}"
+
+- name: Deploy Server 3
+  hosts: server3
+  become: true 
+  tasks:
+    - name: Run Install Script On Control Plane 3
+      command: /home/users/"{{ ansible_user }}"/deploy.sh "server" "{{ ansible_user }}" "{{ k3s_version }}" "{{control_plane_addr}}" "{{ lookup('file', 'k3s/node-token.txt') }}"
+      
+- name: Deploy Agents
+  hosts: agent
+  become: true 
+  tasks:
+    - name: Run Install Script On All Agents
+      command: /home/users/"{{ ansible_user }}"/deploy.sh "agent" "{{ ansible_user }}" "{{ k3s_version }}" "{{control_plane_addr}}" "{{ lookup('file', 'k3s/node-token.txt') }}"
+
+- name: Remove Cluster Init Flag
+  hosts: initserver
+  become: true 
+  tasks:
+    - name: Edit ExecStart to Remove --cluster-init Flag
+      command: sed -e "s/--cluster-init //g" -i /etc/systemd/system/k3s.service
+    - name: Reload Systemd Services
+      command: systemctl daemon-reload
+
+
