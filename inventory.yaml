@@ -1,0 +1,25 @@
+initserver:
+  hosts:
+    <IP>:
+      ansible_host: <hostname>
+server2:
+  hosts:
+    <IP>:
+      ansible_host: <hostname>
+server3:
+  hosts:
+    <IP>:
+      ansible_host: <hostname>
+agent:
+  hosts:
+    <IP>:
+      ansible_host: <hostname>
+
+all:
+  vars:
+    ansible_python_interpreter: /usr/bin/python
+    ansible_port: 22
+    ansible_user: "<user>"
+    ansible_ssh_private_key_file: "ansible/id_rsa"
+    k3s_version: "v1.21.2+k3s1"
+    control_plane_addr: "https://<1st control plane ip>:6443"
