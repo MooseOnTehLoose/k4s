@@ -14,7 +14,10 @@ agent:
   hosts:
     <IP>:
       ansible_host: <hostname>
-
+    <IP>:
+      ansible_host: <hostname>
+    <IP>:
+      ansible_host: <hostname>
 all:
   vars:
     ansible_python_interpreter: /usr/bin/python
